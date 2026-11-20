@@ -9,6 +9,10 @@
     <AssemblyName>NdiAudioRouter</AssemblyName>
     <RootNamespace>NdiAudioRouter</RootNamespace>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>NDI Audio Router</Product>
+    <AssemblyTitle>NDI Audio Router</AssemblyTitle>
     <UseWindowsForms>true</UseWindowsForms>   <!-- només per a la icona de la safata (NotifyIcon) -->
   </PropertyGroup>
   <ItemGroup>
