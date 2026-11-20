@@ -1,0 +1,137 @@
+<Application x:Class="NdiAudioRouter.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.modernwpf.com/2019"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemeResources RequestedTheme="Dark" />
+                <ui:XamlControlsResources />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Targetes -->
+            <Style x:Key="Card" TargetType="Border">
+                <Setter Property="Background" Value="#1B1E25"/>
+                <Setter Property="BorderBrush" Value="#2A2E38"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="10"/>
+                <Setter Property="Padding" Value="14"/>
+                <Setter Property="Margin" Value="0,0,0,12"/>
+            </Style>
+
+            <Style x:Key="CardTitle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="#9AA0AC"/>
+            </Style>
+
+            <!-- Escala del vúmetre -->
+            <LinearGradientBrush x:Key="MeterGradient" StartPoint="0,1" EndPoint="0,0">
+                <GradientStop Color="#19C37D" Offset="0"/>
+                <GradientStop Color="#19C37D" Offset="0.75"/>
+                <GradientStop Color="#F2C94C" Offset="0.88"/>
+                <GradientStop Color="#EB5757" Offset="1"/>
+            </LinearGradientBrush>
+
+            <!-- Botó SOLO estil pro audio -->
+            <Style x:Key="SoloButton" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="#9AA0AC"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="bd" Height="28" CornerRadius="5"
+                                    Background="#2A2E38" BorderBrush="#3A3F4B" BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#6B7280"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#FFC400"/>
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#FFE066"/>
+                                    <Setter Property="Foreground" Value="#1A1400"/>
+                                    <Setter TargetName="bd" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="#FFC400" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Botó MUTE -->
+            <Style x:Key="MuteButton" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="#9AA0AC"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="bd" Height="28" CornerRadius="5"
+                                    Background="#2A2E38" BorderBrush="#3A3F4B" BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#6B7280"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#EB5757"/>
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#FF9A9A"/>
+                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    <Setter TargetName="bd" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="#EB5757" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Botó ID/OSC -->
+            <Style x:Key="GenButton" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="#9AA0AC"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="bd" Height="28" CornerRadius="5"
+                                    Background="#2A2E38" BorderBrush="#3A3F4B" BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#6B7280"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2D9CDB"/>
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#8AD0F5"/>
+                                    <Setter Property="Foreground" Value="#06141F"/>
+                                    <Setter TargetName="bd" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="#2D9CDB" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

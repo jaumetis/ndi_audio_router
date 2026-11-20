@@ -1,0 +1,225 @@
+<Window x:Class="NdiAudioRouter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        ui:WindowHelper.UseModernWindowStyle="True"
+        Title="NDI Audio Router" Height="960" Width="1280" MinWidth="1200" MinHeight="780"
+        Closing="Window_Closing">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*" MinHeight="170"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Capçalera: emissor NDI -->
+            <Border Grid.Row="0" Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,28,0">
+                        <TextBlock Text="NDI Audio Router" FontSize="24" FontWeight="SemiBold"/>
+                        <TextBlock Text="8 canals · enrutament lliure · WASAPI i ASIO" Foreground="#9AA0AC" FontSize="12"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <TextBox x:Name="NdiName" Text="Audio PC" Width="240" ui:ControlHelper.Header="Nom de l'stream NDI"/>
+                        <Button x:Name="BtnStart" Content="Inicia" Width="110" Margin="12,0,0,0"
+                                Style="{StaticResource AccentButtonStyle}" Click="BtnStart_Click"/>
+                        <CheckBox x:Name="ChkV2" Content="Àudio NDI v2 (compatibilitat)" IsChecked="True"
+                                  Margin="18,0,0,0" Checked="Fmt_Changed" Unchecked="Fmt_Changed"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#6B7280" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="StatusText" Text="Aturat" Foreground="#9AA0AC"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ASIO -->
+            <Border Grid.Row="1" Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="DRIVER ASIO" Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox x:Name="AsioDriverBox" Width="280" ItemsSource="{Binding AsioDrivers}"
+                                  ui:ControlHelper.Header="Driver"/>
+                        <ComboBox x:Name="AsioMonitorBox" Width="240" Margin="12,0,0,0" SelectedIndex="0"
+                                  ItemsSource="{Binding AsioMonitorOptions}" ui:ControlHelper.Header="Sortida de monitor ASIO"/>
+                        <Button x:Name="BtnAsio" Content="Connecta" Width="120" Margin="12,0,0,0"
+                                VerticalAlignment="Bottom" Click="BtnAsio_Click"/>
+                        <TextBlock x:Name="AsioStatus" Foreground="#9AA0AC" VerticalAlignment="Bottom"
+                                   Margin="16,0,0,6" Text="Desconnectat"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Rutes -->
+            <Border Grid.Row="2" Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="ENRUTAMENT · ENTRADA → CANAL NDI" Style="{StaticResource CardTitle}" VerticalAlignment="Center"/>
+                        <Button Content="+ Afegeix ruta" Margin="18,0,0,0" Click="AddRoute_Click"/>
+                        <Button Content="Actualitza dispositius" Margin="8,0,0,0" Click="Refresh_Click"/>
+                    </StackPanel>
+                    <DataGrid Grid.Row="1" x:Name="RoutesGrid" ItemsSource="{Binding Routes}"
+                              AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeight="42"
+                              Background="Transparent" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="Actiu" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTemplateColumn Header="Entrada" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox HorizontalAlignment="Stretch" Margin="2"
+                                                  ItemsSource="{Binding DataContext.InputDevices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  SelectedItem="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                                                  DisplayMemberPath="Name"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Canal origen" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding SourceChannels}" Margin="2"
+                                                  SelectedItem="{Binding SourceChannel, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Canal NDI" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Margin="2"
+                                                  ItemsSource="{Binding DataContext.OutputChannels, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  SelectedItem="{Binding OutputChannel, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Guany (dB)" Width="210">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Slider Minimum="-60" Maximum="12" Width="140"
+                                                    Value="{Binding GainDb, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <TextBlock Text="{Binding GainDb, StringFormat={}{0:F1}}" Width="42"
+                                                       VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#9AA0AC"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="54">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="✕" Margin="2" Click="RemoveRoute_Click"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!-- Canals de sortida NDI + configuració ID/OSC -->
+            <Border Grid.Row="3" Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="SORTIDA NDI · 8 CANALS (els noms apareixen a la imatge de l'stream)"
+                                   Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+                        <ItemsControl ItemsSource="{Binding ChannelList}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="3" Padding="6,10" CornerRadius="8" Background="#20242C"
+                                            BorderBrush="#2E3340" BorderThickness="1">
+                                        <StackPanel HorizontalAlignment="Center" Width="92">
+                                            <TextBlock Text="{Binding Number}" HorizontalAlignment="Center" FontSize="15"
+                                                       FontWeight="Bold" Foreground="#9AA0AC" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="14"
+                                                     TextAlignment="Center" FontSize="12"/>
+                                            <Grid Width="28" Height="150" Margin="0,10,0,4" HorizontalAlignment="Center">
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Mute}" Value="True">
+                                                                <Setter Property="Opacity" Value="0.3"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Rectangle Fill="{StaticResource MeterGradient}"/>
+                                                <Rectangle VerticalAlignment="Top" Fill="#12141A" Height="{Binding MaskHeight}"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding DbText}" HorizontalAlignment="Center"
+                                                       FontFamily="Consolas" FontSize="12" Foreground="#9AA0AC"/>
+                                            <ToggleButton Content="SOLO" Style="{StaticResource SoloButton}"
+                                                          IsChecked="{Binding Solo, Mode=TwoWay}" Margin="0,8,0,0"/>
+                                            <ToggleButton Content="MUTE" Style="{StaticResource MuteButton}"
+                                                          IsChecked="{Binding Mute, Mode=TwoWay}" Margin="0,6,0,0"/>
+                                            <ToggleButton Content="ID/OSC" Style="{StaticResource GenButton}"
+                                                          IsChecked="{Binding Gen, Mode=TwoWay}" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Configuració ID / OSC -->
+                    <Border Grid.Column="1" Margin="12,0,0,0" Padding="14" CornerRadius="8" Width="230"
+                            Background="#20242C" BorderBrush="#2E3340" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="ID / OSC" Style="{StaticResource CardTitle}"/>
+                            <RadioButton x:Name="RbId" Content="ID · veu «Channel number N»" GroupName="gen"
+                                         IsChecked="True" Margin="0,10,0,0" Checked="GenConfig_Changed"/>
+                            <RadioButton x:Name="RbOsc" Content="OSC · to d'ajust" GroupName="gen" Checked="GenConfig_Changed"/>
+                            <ComboBox x:Name="CmbFreq" ItemsSource="{Binding ToneFreqs}" Margin="0,8,0,0"
+                                      HorizontalAlignment="Stretch" ui:ControlHelper.Header="Freqüència del to (Hz)"
+                                      SelectionChanged="GenConfig_Changed"/>
+                            <TextBlock x:Name="LevelText" Text="Nivell: -18 dBFS" Margin="0,12,0,2" Foreground="#9AA0AC" FontSize="12"/>
+                            <Slider x:Name="SldLevel" Minimum="-40" Maximum="0" Value="-18" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" ValueChanged="GenConfig_Changed"/>
+                            <TextBlock x:Name="VoiceText" Margin="0,8,0,0" FontSize="11" Foreground="#7B8190" TextWrapping="Wrap"/>
+                            <ToggleButton x:Name="BtnMuteAll" Content="MUTE TOTS" Style="{StaticResource MuteButton}"
+                                          Margin="0,16,0,0" Click="MuteAll_Click"/>
+                            <ToggleButton x:Name="BtnGenAll" Content="ID/OSC TOTS" Style="{StaticResource GenButton}"
+                                          Margin="0,8,0,0" Click="GenAll_Click"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Monitor + diagnòstic -->
+            <Border Grid.Row="4" Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox x:Name="MonDevice" Width="300" DisplayMemberPath="Name"
+                                  ItemsSource="{Binding OutputDevices}" SelectionChanged="MonDevice_Changed"
+                                  ui:ControlHelper.Header="Sortida de monitor (WASAPI, si no s'usa ASIO)"/>
+                        <StackPanel Margin="24,0,0,0">
+                            <TextBlock Text="Volum de monitor" Foreground="#9AA0AC" FontSize="12" Margin="0,0,0,6"/>
+                            <Slider x:Name="MonVol" Minimum="0" Maximum="1.5" Value="1" Width="220"
+                                    ValueChanged="Monitor_VolChanged"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock x:Name="DiagText" Margin="0,12,0,0" FontSize="11" Foreground="#7B8190"
+                               TextWrapping="Wrap" Text="Aturat"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Window>
