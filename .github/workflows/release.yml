@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    tags: ['v*']          # p. ex. v1.0.0
+    branches: [main]      # cada push a main publica una Release nova (v1.0.N)
+    tags: ['v*']          # o una etiqueta manual, p. ex. v1.2.0
   workflow_dispatch:       # també es pot llançar a mà (genera només artefactes, no Release)
 
 permissions:
@@ -23,7 +24,7 @@ jobs:
         shell: pwsh
         run: |
           $ref = "${{ github.ref_name }}"
-          if ($ref -match '^v(\d+\.\d+\.\d+)') { $v = $Matches[1] } else { $v = '0.0.0' }
+          if ($ref -match '^v(\d+\.\d+\.\d+)') { $v = $Matches[1] } else { $v = "1.0.${{ github.run_number }}" }
           "version=$v" >> $env:GITHUB_OUTPUT
 
       - name: Publica l'executable
@@ -54,8 +55,10 @@ jobs:
           path: dist/*.exe
 
       - name: Publica la Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: NDI Audio Router ${{ steps.ver.outputs.version }}
           files: dist/*.exe
           generate_release_notes: true

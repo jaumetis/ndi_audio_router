@@ -29,5 +29,7 @@ Desenvolupament: `dotnet run -c Release`
 ## Instal·lador i Releases
 - Instal·lador (Inno Setup): `installer\NdiAudioRouter.iss`. En local: executa `publish.bat` i després
   `iscc /DMyAppVersion=1.0.0 installer\NdiAudioRouter.iss` → `dist\NdiAudioRouter-Setup-1.0.0.exe`.
-- Automàtic: en pujar una etiqueta `vX.Y.Z` (p. ex. `v1.0.0`), GitHub Actions (`.github/workflows/release.yml`)
-  compila, genera l'instal·lador i l'executable portable i els adjunta a la Release.
+- Automàtic: cada cop que es puja codi a `main`, GitHub Actions (`.github/workflows/release.yml`)
+  compila, genera l'instal·lador i l'executable portable i publica una Release nova (`v1.0.N`).
+  També es pot forçar una versió concreta pujant una etiqueta `vX.Y.Z`.
+  Les Releases surten a la dreta de la pàgina del repositori, a l'apartat *Releases*.
