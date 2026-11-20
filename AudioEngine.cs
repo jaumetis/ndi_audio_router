@@ -270,8 +270,8 @@ public sealed class AudioEngine : IDisposable
     double _genFreq = 1000, _genLevelDb = -18;
     readonly float[] _muteGain = Enumerable.Repeat(1f, Channels).ToArray();
     readonly float[] _genGain = new float[Channels];
-    readonly long[] _genStart = new long[Channels];
-    long _genSample;
+    long _idClock;                 // rellotge de la seqüència de veus (en mostres)
+    int _idSlot = Rate * 2;        // durada d'un torn de veu (clip més llarg + pausa)
     double _tonePhase;
     float[][]? _idClips;
     string _voiceStatus = "Veu: no preparada";
@@ -345,6 +345,9 @@ public sealed class AudioEngine : IDisposable
                     for (int i = 0; i < fade; i++) { float k = i / (float)fade; f[i] *= k; f[n - 1 - i] *= k; }
                     clips[c] = f;
                 }
+                int maxLen = 0;
+                foreach (var cl in clips) maxLen = Math.Max(maxLen, cl.Length);
+                _idSlot = Math.Max(Rate, maxLen + Rate * 3 / 10);       // pausa de 0,3 s entre canals
                 _idClips = clips;
                 _voiceStatus = "Veu: " + voice + note;
             }
@@ -359,24 +362,26 @@ public sealed class AudioEngine : IDisposable
         int gmask = _genMask;
         bool active = gmask != 0;
         for (int c = 0; c < Channels && !active; c++) if (_genGain[c] > 0f) active = true;
-        if (!active) { _genSample += Block; return; }
+        if (!active) { _idClock = 0; return; }
 
         int mode = _genMode;
         double inc = 2 * Math.PI * _genFreq / Rate;
         float amp = (float)Math.Pow(10, _genLevelDb / 20.0);
         var clips = _idClips;
-        const int cycle = Rate * 4;                 // la veu es repeteix cada 4 s
+        int slot = _idSlot;
+        int nOn = System.Numerics.BitOperations.PopCount((uint)gmask);
+        long cycleLen = (long)Math.Max(1, nOn) * slot;   // les veus parlen una darrere l'altra, en ordre de canal
+        if (mode != 0) _idClock = 0;
 
         for (int c = 0; c < Channels; c++)
         {
             float target = (gmask & (1 << c)) != 0 ? 1f : 0f;
             float g0 = _genGain[c];
             if (target == 0f && g0 == 0f) continue;
-            if (target == 1f && g0 == 0f) _genStart[c] = _genSample;     // la veu comença des del principi
             float step = (target - g0) / Block, g = g0;
             double ph = _tonePhase;
             var clip = mode == 0 && clips != null ? clips[c] : null;
-            long pos0 = _genSample - _genStart[c];
+            int rank = System.Numerics.BitOperations.PopCount((uint)(gmask & ((1 << c) - 1)));   // torn d'aquest canal
             int o = c * Block;
             for (int i = 0; i < Block; i++)
             {
@@ -385,15 +390,15 @@ public sealed class AudioEngine : IDisposable
                 if (mode == 1) { sv = (float)Math.Sin(ph) * amp; ph += inc; }
                 else if (clip != null)
                 {
-                    long p = (pos0 + i) % cycle;
-                    if (p < clip.Length) sv = clip[p] * amp;
+                    long p = (_idClock + i) % cycleLen - (long)rank * slot;
+                    if (p >= 0 && p < clip.Length) sv = clip[p] * amp;
                 }
                 mix[o + i] = mix[o + i] * (1f - g) + sv * g;
             }
             _genGain[c] = target;
         }
         _tonePhase = (_tonePhase + Block * inc) % (2 * Math.PI);
-        _genSample += Block;
+        if (mode == 0) _idClock += Block;
     }
 
     /// <summary>Mute dels canals de sortida NDI (el monitor SOLO ja s'ha pres abans, així que segueix sonant).</summary>

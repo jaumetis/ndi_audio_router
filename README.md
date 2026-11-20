@@ -23,5 +23,5 @@ Desenvolupament: `dotnet run -c Release`
 ## Novetats
 - Confirmació en aturar l'stream; en tancar la finestra pregunta: tancar el programa, amagar-lo a la safata o cancel·lar.
 - Cada canal té **SOLO**, **MUTE** (el SOLO segueix sonant amb MUTE) i **ID/OSC**.
-- Panell ID/OSC: mode ID (veu "Channel number N", Windows TTS) o OSC (to d'ajust; per defecte 1 kHz a -18 dBFS). Botons MUTE TOTS i ID/OSC TOTS.
+- Panell ID/OSC: mode ID (veu "Channel number N", Windows TTS; els canals parlen un darrere l'altre, en ordre, sense trepitjar-se) o OSC (to d'ajust; per defecte 1 kHz a -18 dBFS). Botons MUTE TOTS i ID/OSC TOTS.
 - La veu necessita una veu SAPI en anglès (en-US) instal·lada a Windows; si no, usa la veu per defecte.
