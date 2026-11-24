@@ -95,63 +95,79 @@
                         <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="Refresh_Click"
                                 Content="{Binding [RefreshDevices], Source={x:Static local:Loc.I}}"/>
                     </StackPanel>
-                    <DataGrid Grid.Row="1" x:Name="RoutesGrid" ItemsSource="{Binding Routes}"
-                              AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
-                              HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeight="46"
-                              Background="Transparent" BorderThickness="0">
-                        <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
-                                                    Header="{Binding [ColActive], Source={x:Static local:Loc.I}}"/>
-                            <DataGridTemplateColumn Width="*" Header="{Binding [ColInput], Source={x:Static local:Loc.I}}">
-                                <DataGridTemplateColumn.CellTemplate>
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <!-- Capçalera: mateixes columnes que les files -->
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="2*" MinWidth="200"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="2*" MinWidth="180"/>
+                                <ColumnDefinition Width="48"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Margin="8,0,0,0"
+                                       Text="{Binding [ColActive], Source={x:Static local:Loc.I}}"/>
+                            <TextBlock Grid.Column="1" Style="{StaticResource CardTitle}" Margin="6,0,0,0"
+                                       Text="{Binding [ColInput], Source={x:Static local:Loc.I}}"/>
+                            <TextBlock Grid.Column="2" Style="{StaticResource CardTitle}" Margin="6,0,0,0"
+                                       Text="{Binding [ColSrcCh], Source={x:Static local:Loc.I}}"/>
+                            <TextBlock Grid.Column="3" Style="{StaticResource CardTitle}" Margin="6,0,0,0"
+                                       Text="{Binding [ColNdiCh], Source={x:Static local:Loc.I}}"/>
+                            <TextBlock Grid.Column="4" Style="{StaticResource CardTitle}" Margin="6,0,0,0"
+                                       Text="{Binding [ColGain], Source={x:Static local:Loc.I}}"/>
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" x:Name="RoutesGrid" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Routes}">
+                                <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <ComboBox HorizontalAlignment="Stretch" Margin="2"
-                                                  ItemsSource="{Binding DataContext.InputDevices, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  SelectedItem="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
-                                                  DisplayMemberPath="Name"/>
+                                        <Border BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0" MinHeight="46">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70"/>
+                                                    <ColumnDefinition Width="2*" MinWidth="200"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="2*" MinWidth="180"/>
+                                                    <ColumnDefinition Width="48"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" MinWidth="0"
+                                                          IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="4,4"
+                                                          ItemsSource="{Binding DataContext.InputDevices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          SelectedItem="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                                                          DisplayMemberPath="Name"/>
+                                                <ComboBox Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="4,4"
+                                                          ItemsSource="{Binding SourceChannels}"
+                                                          SelectedItem="{Binding SourceChannel, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <ComboBox Grid.Column="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="4,4"
+                                                          ItemsSource="{Binding DataContext.OutputChannels, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          SelectedItem="{Binding OutputChannel, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Grid Grid.Column="4" Margin="10,0,6,0" VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="52"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Slider Minimum="-60" Maximum="12" VerticalAlignment="Center"
+                                                            Value="{Binding GainDb, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding GainDb, StringFormat={}{0:F1}}"
+                                                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                               FontFamily="{StaticResource NumFont}" Foreground="{StaticResource TextDim}"/>
+                                                </Grid>
+                                                <Button Grid.Column="5" Content="✕" Style="{StaticResource GhostButton}" Width="36" MinHeight="32"
+                                                        Padding="0" HorizontalAlignment="Center" Click="RemoveRoute_Click"/>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Width="120" Header="{Binding [ColSrcCh], Source={x:Static local:Loc.I}}">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding SourceChannels}" Margin="2"
-                                                  SelectedItem="{Binding SourceChannel, UpdateSourceTrigger=PropertyChanged}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Width="110" Header="{Binding [ColNdiCh], Source={x:Static local:Loc.I}}">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <ComboBox Margin="2"
-                                                  ItemsSource="{Binding DataContext.OutputChannels, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  SelectedItem="{Binding OutputChannel, UpdateSourceTrigger=PropertyChanged}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Width="230" Header="{Binding [ColGain], Source={x:Static local:Loc.I}}">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Slider Minimum="-60" Maximum="12" Width="150"
-                                                    Value="{Binding GainDb, UpdateSourceTrigger=PropertyChanged}"/>
-                                            <TextBlock Text="{Binding GainDb, StringFormat={}{0:F1}}" Width="46"
-                                                       VerticalAlignment="Center" Margin="10,0,0,0"
-                                                       FontFamily="{StaticResource NumFont}" Foreground="{StaticResource TextDim}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Width="60">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="✕" Style="{StaticResource GhostButton}" Width="36" MinHeight="32" Padding="0"
-                                                Margin="2" Click="RemoveRoute_Click"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </Border>
 
