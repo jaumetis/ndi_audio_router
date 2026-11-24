@@ -33,7 +33,8 @@ sealed class AudioInput : IAudioSource
 
     public int Channels { get; }
     public string Name { get; }
-    public string Description { get; }
+    readonly WaveFormat _fmt;
+    public string Description => Loc.F("InputDesc", _fmt.SampleRate, _fmt.Channels, _fmt.BitsPerSample, _fmt.Encoding);
     public long TotalBytes => Interlocked.Read(ref _totalBytes);
 
     public AudioInput(string id, string name, bool loopback)
@@ -45,7 +46,7 @@ sealed class AudioInput : IAudioSource
         Channels = fmt.Channels;
         _srcRate = fmt.SampleRate;
         _blockAlign = fmt.BlockAlign;
-        Description = $"{fmt.SampleRate} Hz, {fmt.Channels} can., {fmt.BitsPerSample} bit {fmt.Encoding}";
+        _fmt = fmt;
         _buf = new BufferedWaveProvider(fmt)
         {
             BufferDuration = TimeSpan.FromMilliseconds(500),
@@ -152,7 +153,7 @@ sealed class AsioInput : IAudioSource
     public string Key { get; }
     public int Channels { get; }
     public string Name { get; }
-    public string Description { get; }
+    public string Description => Loc.F("AsioInputDesc", AudioEngine.Rate, Channels);
     public long TotalBytes => Interlocked.Read(ref _bytes);
     public BufferedWaveProvider? MonitorBuf { get; }
     public event Action<string>? Failed;
@@ -165,13 +166,13 @@ sealed class AsioInput : IAudioSource
         try
         {
             Channels = Math.Clamp(_asio.DriverInputChannelCount, 0, 64);
-            if (Channels == 0) throw new InvalidOperationException("El driver no té entrades d'àudio.");
+            if (Channels == 0) throw new InvalidOperationException(Loc.T("AsioNoInputs"));
             _ring = new FloatRing(AudioEngine.Rate * Channels / 2);   // 500 ms
 
             if (monitorOffset >= 0)
             {
                 if (monitorOffset + 2 > _asio.DriverOutputChannelCount)
-                    throw new InvalidOperationException($"El driver només té {_asio.DriverOutputChannelCount} sortides.");
+                    throw new InvalidOperationException(Loc.F("AsioFewOutputs", _asio.DriverOutputChannelCount));
                 _asio.ChannelOffset = monitorOffset;
                 MonitorBuf = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(AudioEngine.Rate, 2))
                 {
@@ -190,10 +191,10 @@ sealed class AsioInput : IAudioSource
 
             _asio.AudioAvailable += OnAudio;
             _asio.DriverResetRequest += (_, _) =>
-                Failed?.Invoke("El driver ASIO demana reiniciar (canvi de freqüència o de buffer). Torna a connectar.");
+                Failed?.Invoke(Loc.T("AsioReset"));
             _asio.PlaybackStopped += (_, e) =>
             {
-                if (e.Exception != null) Failed?.Invoke("ASIO aturat: " + e.Exception.Message);
+                if (e.Exception != null) Failed?.Invoke(Loc.F("AsioStopped", e.Exception.Message));
             };
             _asio.Play();
         }
@@ -202,7 +203,6 @@ sealed class AsioInput : IAudioSource
             _asio.Dispose();
             throw;
         }
-        Description = $"{AudioEngine.Rate} Hz, {Channels} entrades";
     }
 
     void OnAudio(object? sender, AsioAudioAvailableEventArgs e)
@@ -274,7 +274,8 @@ public sealed class AudioEngine : IDisposable
     int _idSlot = Rate * 2;        // durada d'un torn de veu (clip més llarg + pausa)
     double _tonePhase;
     float[][]? _idClips;
-    string _voiceStatus = "Veu: no preparada";
+    string _voiceKey = "VoiceNotReady", _voiceDetail = "";
+    bool _voiceNoEnglish;
     Thread? _voiceThread;
 
     // Monitor (mescla dels canals en SOLO, mono a L i R)
@@ -292,7 +293,9 @@ public sealed class AudioEngine : IDisposable
     public event Action<string>? Error;
     public event Action<string>? AsioFailed;
 
-    public string VoiceStatus => _voiceStatus;
+    public string VoiceStatus =>
+        (_voiceKey is "VoiceReady" or "VoiceFail") ? Loc.F(_voiceKey, _voiceDetail) + (_voiceKey == "VoiceReady" && _voiceNoEnglish ? Loc.T("VoiceNoEnglish") : "")
+        : Loc.T(_voiceKey);
 
     /// <summary>mute / gen: bit n = canal n.</summary>
     public void SetChannelFlags(int muteMask, int genMask) { _muteMask = muteMask; _genMask = genMask; }
@@ -307,19 +310,18 @@ public sealed class AudioEngine : IDisposable
     public void PrepareVoices()
     {
         if (_voiceThread != null) return;
-        _voiceStatus = "Veu: generant…";
+        _voiceKey = "VoiceGenerating";
         _voiceThread = new Thread(() =>
         {
             try
             {
                 using var synth = new System.Speech.Synthesis.SpeechSynthesizer();
-                string note = "";
                 try
                 {
                     synth.SelectVoiceByHints(System.Speech.Synthesis.VoiceGender.NotSet,
                         System.Speech.Synthesis.VoiceAge.NotSet, 0, new System.Globalization.CultureInfo("en-US"));
                 }
-                catch { note = " (cap veu en anglès instal·lada: pronunciació aproximada)"; }
+                catch { _voiceNoEnglish = true; }
                 string voice = synth.Voice.Name;
 
                 var clips = new float[Channels][];
@@ -349,9 +351,10 @@ public sealed class AudioEngine : IDisposable
                 foreach (var cl in clips) maxLen = Math.Max(maxLen, cl.Length);
                 _idSlot = Math.Max(Rate, maxLen + Rate * 3 / 10);       // pausa de 0,3 s entre canals
                 _idClips = clips;
-                _voiceStatus = "Veu: " + voice + note;
+                _voiceDetail = voice;
+                _voiceKey = "VoiceReady";
             }
-            catch (Exception ex) { _voiceStatus = "Veu no disponible: " + ex.Message; }
+            catch (Exception ex) { _voiceDetail = ex.Message; _voiceKey = "VoiceFail"; }
         }) { IsBackground = true, Name = "TTS" };
         _voiceThread.Start();
     }
@@ -511,33 +514,38 @@ public sealed class AudioEngine : IDisposable
         {
             if (r.DeviceId.StartsWith("asio:") || _inputs.ContainsKey(r.DeviceId)) continue;
             try { _inputs[r.DeviceId] = new AudioInput(r.DeviceId, r.DeviceName, r.Loopback); }
-            catch (Exception ex) { Error?.Invoke($"No es pot obrir '{r.DeviceName}': {ex.Message}"); }
+            catch (Exception ex) { Error?.Invoke(Loc.F("ErrOpenInput", r.DeviceName, ex.Message)); }
         }
     }
 
     public string Diagnostics()
     {
-        if (!_run) return "Aturat";
+        if (!_run) return Loc.T("DiagStopped");
         var sb = new StringBuilder();
-        sb.Append(_ndiOk ? "NDI: OK" : "NDI: NO (només monitor)");
-        sb.Append($" | àudio {(UseAudioV2 ? "v2" : "v3 FLTP")} | receptors: {_connections}");
-        sb.Append($" | cicles: {Interlocked.Read(ref _cycles)}");
+        sb.Append(Loc.T(_ndiOk ? "DiagNdiOk" : "DiagNdiNo"));
+        sb.Append(Loc.F("DiagAudioRecv", UseAudioV2 ? "v2" : "v3 FLTP", _connections));
+        sb.Append(Loc.F("DiagCycles", Interlocked.Read(ref _cycles)));
         lock (_lock)
         {
-            sb.Append($" | rutes: {_routes.Length} | entrades obertes: {_inputs.Count}");
-            sb.Append(_asio?.MonitorBuf != null ? " | monitor: ASIO"
-                : _monOut != null ? " | monitor: WASAPI"
-                : _monMask != 0 ? " | monitor: NO s'ha pogut obrir" : " | monitor: sense SOLO");
+            sb.Append(Loc.F("DiagRoutes", _routes.Length, _inputs.Count));
+            sb.Append(Loc.T(_asio?.MonitorBuf != null ? "DiagMonAsio"
+                : _monOut != null ? "DiagMonWasapi"
+                : _monMask != 0 ? "DiagMonFail" : "DiagMonNoSolo"));
             foreach (var i in _inputs.Values)
-                sb.Append($"\n• {i.Name} [{i.Description}] — rebut {i.TotalBytes / 1024} KB");
+                sb.Append(Loc.F("DiagInput", i.Name, i.Description, i.TotalBytes / 1024));
         }
         return sb.ToString();
     }
 
+    /// <summary>Detall tècnic (p. ex. el missatge de l'excepció) quan Start no retorna StatusRunning.</summary>
+    public string StartDetail { get; private set; } = "";
+
+    /// <summary>Inicia l'emissió. Retorna una clau de traducció d'estat (StatusRunning, StatusNdiInit…).</summary>
     public string Start(string ndiName)
     {
         if (_run) return "";
-        string status = "En marxa";
+        string status = "StatusRunning";
+        StartDetail = "";
         try
         {
             _ndiOk = Ndi.NDIlib_initialize();
@@ -547,14 +555,15 @@ public sealed class AudioEngine : IDisposable
                 var create = new Ndi.SendCreate { NdiName = namePtr, ClockVideo = false, ClockAudio = false };
                 _send = Ndi.NDIlib_send_create(ref create);
                 Marshal.FreeCoTaskMem(namePtr);
-                if (_send == IntPtr.Zero) { _ndiOk = false; status = "No s'ha pogut crear l'emissor NDI (només monitor)"; }
+                if (_send == IntPtr.Zero) { _ndiOk = false; status = "StatusNdiCreate"; }
             }
-            else status = "NDI no s'ha pogut inicialitzar (només monitor)";
+            else status = "StatusNdiInit";
         }
         catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
         {
             _ndiOk = false;
-            status = "No es troba NDI Runtime x64 (només monitor): " + ex.Message;
+            status = "StatusNdiMissing";
+            StartDetail = ex.Message;
         }
 
         timeBeginPeriod(1);
@@ -621,7 +630,7 @@ public sealed class AudioEngine : IDisposable
         {
             _monFailed = true;
             DisposeMonitor();
-            Error?.Invoke("Monitor: " + ex.Message);
+            Error?.Invoke(Loc.F("ErrMonitor", ex.Message));
         }
     }
 
@@ -760,7 +769,7 @@ public sealed class AudioEngine : IDisposable
                 }
             }
         }
-        catch (Exception ex) { Error?.Invoke("Motor d'àudio: " + ex.Message); }
+        catch (Exception ex) { Error?.Invoke(Loc.F("ErrEngine", ex.Message)); }
         finally { Marshal.FreeHGlobal(native); Marshal.FreeHGlobal(nativeVideo); }
     }
 

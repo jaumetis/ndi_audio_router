@@ -10,56 +10,126 @@
                 <ui:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Targetes -->
+            <!-- ===== Tipografia: Segoe UI Variable (Windows 11) amb Segoe UI de reserva; xifres en monoespaiada ===== -->
+            <FontFamily x:Key="ContentControlThemeFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
+            <FontFamily x:Key="NumFont">Cascadia Mono, Consolas</FontFamily>
+
+            <!-- ===== Paleta ===== -->
+            <SolidColorBrush x:Key="BgApp" Color="#0E1014"/>
+            <SolidColorBrush x:Key="BgCard" Color="#151820"/>
+            <SolidColorBrush x:Key="BgInner" Color="#1B1F29"/>
+            <SolidColorBrush x:Key="BgControl" Color="#222733"/>
+            <SolidColorBrush x:Key="BorderSoft" Color="#262C39"/>
+            <SolidColorBrush x:Key="BorderStrong" Color="#3A4252"/>
+            <SolidColorBrush x:Key="TextPrimary" Color="#EEF0F5"/>
+            <SolidColorBrush x:Key="TextDim" Color="#B3BAC8"/>
+            <SolidColorBrush x:Key="TextFaint" Color="#8A92A3"/>
+            <SolidColorBrush x:Key="Accent" Color="#4C8DFF"/>
+            <SolidColorBrush x:Key="Danger" Color="#EF4B53"/>
+            <SolidColorBrush x:Key="Amber" Color="#FFB81C"/>
+            <SolidColorBrush x:Key="Sky" Color="#38BDF8"/>
+
+            <!-- ===== Targetes i títols ===== -->
             <Style x:Key="Card" TargetType="Border">
-                <Setter Property="Background" Value="#1B1E25"/>
-                <Setter Property="BorderBrush" Value="#2A2E38"/>
+                <Setter Property="Background" Value="{StaticResource BgCard}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="CornerRadius" Value="10"/>
-                <Setter Property="Padding" Value="14"/>
-                <Setter Property="Margin" Value="0,0,0,12"/>
+                <Setter Property="CornerRadius" Value="14"/>
+                <Setter Property="Padding" Value="20,18"/>
+                <Setter Property="Margin" Value="0,0,0,14"/>
             </Style>
 
             <Style x:Key="CardTitle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FontSize" Value="12"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Foreground" Value="#9AA0AC"/>
+                <Setter Property="Foreground" Value="{StaticResource TextFaint}"/>
             </Style>
 
-            <!-- Escala del vúmetre -->
-            <LinearGradientBrush x:Key="MeterGradient" StartPoint="0,1" EndPoint="0,0">
-                <GradientStop Color="#19C37D" Offset="0"/>
-                <GradientStop Color="#19C37D" Offset="0.75"/>
-                <GradientStop Color="#F2C94C" Offset="0.88"/>
-                <GradientStop Color="#EB5757" Offset="1"/>
-            </LinearGradientBrush>
+            <!-- ===== Botons d'acció (primari / perill / discret) ===== -->
+            <ControlTemplate x:Key="ActionTemplate" TargetType="Button">
+                <Grid>
+                    <Border x:Name="bd" CornerRadius="9" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Border>
+                    <Border x:Name="hv" CornerRadius="9" Background="#18FFFFFF" Opacity="0" IsHitTestVisible="False"/>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="hv" Property="Opacity" Value="1"/>
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter TargetName="hv" Property="Background" Value="#2CFFFFFF"/>
+                        <Setter TargetName="hv" Property="Opacity" Value="1"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.4"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
 
-            <!-- Botó SOLO estil pro audio -->
-            <Style x:Key="SoloButton" TargetType="ToggleButton">
-                <Setter Property="Foreground" Value="#9AA0AC"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="FontSize" Value="12"/>
+            <Style x:Key="ActionButton" TargetType="Button">
+                <Setter Property="Template" Value="{StaticResource ActionTemplate}"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                <Setter Property="Background" Value="{StaticResource BgControl}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderStrong}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="16,0"/>
+                <Setter Property="MinHeight" Value="36"/>
+                <Setter Property="FontSize" Value="13.5"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Cursor" Value="Hand"/>
+            </Style>
+
+            <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                <Setter Property="Background" Value="{StaticResource Accent}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+            </Style>
+
+            <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                <Setter Property="Background" Value="{StaticResource Danger}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Danger}"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+            </Style>
+
+            <Style x:Key="GhostButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="FontWeight" Value="Medium"/>
+                <Setter Property="Padding" Value="14,0"/>
+            </Style>
+
+            <!-- ===== Botons de canal: SOLO / MUTE / ID-OSC (es il·luminen amb el color de Tag) ===== -->
+            <Style x:Key="PadButton" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Tag" Value="{StaticResource Accent}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="bd" Height="28" CornerRadius="5"
-                                    Background="#2A2E38" BorderBrush="#3A3F4B" BorderThickness="1">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
+                            <Grid Height="28">
+                                <Border x:Name="glow" CornerRadius="7" Background="{TemplateBinding Tag}" Opacity="0">
+                                    <Border.Effect>
+                                        <BlurEffect Radius="12"/>
+                                    </Border.Effect>
+                                </Border>
+                                <Border x:Name="bd" CornerRadius="7" Background="{StaticResource BgControl}"
+                                        BorderBrush="{StaticResource BorderStrong}" BorderThickness="1">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="BorderBrush" Value="#6B7280"/>
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#7B8496"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#FFC400"/>
-                                    <Setter TargetName="bd" Property="BorderBrush" Value="#FFE066"/>
-                                    <Setter Property="Foreground" Value="#1A1400"/>
-                                    <Setter TargetName="bd" Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#FFC400" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
-                                        </Setter.Value>
-                                    </Setter>
+                                    <Setter TargetName="bd" Property="Background" Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                    <Setter TargetName="glow" Property="Opacity" Value="0.55"/>
+                                    <Setter Property="Foreground" Value="#0B0D11"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -67,65 +137,35 @@
                 </Setter>
             </Style>
 
-            <!-- Botó MUTE -->
-            <Style x:Key="MuteButton" TargetType="ToggleButton">
-                <Setter Property="Foreground" Value="#9AA0AC"/>
+            <Style x:Key="SoloButton" TargetType="ToggleButton" BasedOn="{StaticResource PadButton}">
+                <Setter Property="Tag" Value="{StaticResource Amber}"/>
+            </Style>
+            <Style x:Key="MuteButton" TargetType="ToggleButton" BasedOn="{StaticResource PadButton}">
+                <Setter Property="Tag" Value="{StaticResource Danger}"/>
+            </Style>
+            <Style x:Key="GenButton" TargetType="ToggleButton" BasedOn="{StaticResource PadButton}">
+                <Setter Property="Tag" Value="{StaticResource Sky}"/>
+            </Style>
+
+            <!-- ===== Selector segmentat (idioma) ===== -->
+            <Style x:Key="SegButton" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+                <Setter Property="FontSize" Value="12.5"/>
                 <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="FontSize" Value="12"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Template">
                     <Setter.Value>
-                        <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="bd" Height="28" CornerRadius="5"
-                                    Background="#2A2E38" BorderBrush="#3A3F4B" BorderThickness="1">
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="bd" CornerRadius="7" Padding="14,5" MinWidth="44" Background="Transparent">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="BorderBrush" Value="#6B7280"/>
+                                    <Setter TargetName="bd" Property="Background" Value="#1CFFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#EB5757"/>
-                                    <Setter TargetName="bd" Property="BorderBrush" Value="#FF9A9A"/>
+                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource Accent}"/>
                                     <Setter Property="Foreground" Value="#FFFFFF"/>
-                                    <Setter TargetName="bd" Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#EB5757" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <!-- Botó ID/OSC -->
-            <Style x:Key="GenButton" TargetType="ToggleButton">
-                <Setter Property="Foreground" Value="#9AA0AC"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="FontSize" Value="12"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="bd" Height="28" CornerRadius="5"
-                                    Background="#2A2E38" BorderBrush="#3A3F4B" BorderThickness="1">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="BorderBrush" Value="#6B7280"/>
-                                </Trigger>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#2D9CDB"/>
-                                    <Setter TargetName="bd" Property="BorderBrush" Value="#8AD0F5"/>
-                                    <Setter Property="Foreground" Value="#06141F"/>
-                                    <Setter TargetName="bd" Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#2D9CDB" BlurRadius="14" ShadowDepth="0" Opacity="0.75"/>
-                                        </Setter.Value>
-                                    </Setter>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

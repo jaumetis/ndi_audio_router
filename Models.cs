@@ -25,7 +25,7 @@ public static class DeviceCatalog
 
     public static List<DeviceInfo> Outputs()
     {
-        var list = new List<DeviceInfo> { new("", "Dispositiu per defecte", false, 2) };
+        var list = new List<DeviceInfo> { new("", Loc.T("DefaultDevice"), false, 2) };
         var en = new MMDeviceEnumerator();
         foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)) Add(list, d, false, "");
         return list;
@@ -68,33 +68,68 @@ public class RouteVM : INotifyPropertyChanged
     void Raise([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }
 
-/// <summary>Canal de sortida NDI (1..8): nom editable, SOLO i nivell.</summary>
+/// <summary>Canal de sortida NDI (1..8): nom editable, SOLO / MUTE / ID-OSC i nivell amb retenció de pic.</summary>
 public class ChannelVM : INotifyPropertyChanged
 {
-    public const double MeterHeight = 150;
-    string _name;
+    string? _custom;                       // null = nom per defecte ("Canal N" / "Channel N", segons l'idioma)
     bool _solo, _mute, _gen;
-    double _mask = MeterHeight;
-    string _dbText = "-∞";
+    double _level, _peak, _hold;
+    string _peakText = "-∞";
 
-    public ChannelVM(int index) { Index = index; _name = $"Canal {index + 1}"; }
+    public ChannelVM(int index) { Index = index; }
 
     public int Index { get; }
     public int Number => Index + 1;
     public double Db { get; private set; } = -60;
 
-    public string Name { get => _name; set { _name = value ?? ""; Raise(); } }
+    public string DefaultName => Loc.F("ChannelDefault", Number);
+
+    /// <summary>Text editable. Buit = es fa servir el nom per defecte.</summary>
+    public string Name
+    {
+        get => _custom ?? DefaultName;
+        set
+        {
+            value ??= "";
+            if (value == _custom) return;
+            // Si l'usuari deixa el nom per defecte (en qualsevol idioma), seguirà l'idioma de la interfície
+            _custom = value == $"Canal {Number}" || value == $"Channel {Number}" ? null : value;
+            Raise();
+            Raise(nameof(ShownName));
+        }
+    }
+
+    /// <summary>Nom que es mostra a la imatge de l'stream (mai buit).</summary>
+    public string ShownName => string.IsNullOrWhiteSpace(_custom) ? DefaultName : _custom!;
+
+    /// <summary>Per desar a la configuració: només si s'ha personalitzat.</summary>
+    public string CustomName => _custom ?? "";
+
     public bool Solo { get => _solo; set { if (_solo == value) return; _solo = value; Raise(); } }
     public bool Mute { get => _mute; set { if (_mute == value) return; _mute = value; Raise(); } }
     public bool Gen { get => _gen; set { if (_gen == value) return; _gen = value; Raise(); } }
-    public double MaskHeight { get => _mask; private set { if (Math.Abs(_mask - value) < 0.3) return; _mask = value; Raise(); } }
-    public string DbText { get => _dbText; private set { if (_dbText == value) return; _dbText = value; Raise(); } }
 
+    /// <summary>Nivell actual normalitzat (0 = -60 dB, 1 = 0 dB).</summary>
+    public double Level { get => _level; private set { if (Math.Abs(_level - value) < 0.002) return; _level = value; Raise(); } }
+    /// <summary>Pic amb retenció normalitzat.</summary>
+    public double Peak { get; private set; }
+    public string PeakText { get => _peakText; private set { if (_peakText == value) return; _peakText = value; Raise(); } }
+
+    public void RefreshLanguage() { Raise(nameof(Name)); Raise(nameof(ShownName)); }
+
+    /// <summary>Es crida cada 40 ms amb el nivell actual en dBFS.</summary>
     public void SetLevel(double db)
     {
         Db = db;
-        MaskHeight = MeterHeight * (1 - Math.Clamp((db + 60) / 60, 0, 1));
-        DbText = db <= -59 ? "-∞" : db.ToString("F0", CultureInfo.InvariantCulture) + " dB";
+        double n = Math.Clamp((db + 60) / 60, 0, 1);
+        Level = n;
+
+        if (n >= _peak) { _peak = n; _hold = 1.2; }                       // retén el pic 1,2 s
+        else if (_hold > 0) _hold -= 0.04;
+        else _peak = Math.Max(n, _peak - 0.04 * (24.0 / 60.0));           // després cau a 24 dB/s
+
+        if (Math.Abs(Peak - _peak) >= 0.002) { Peak = _peak; Raise(nameof(Peak)); }
+        PeakText = _peak <= 0.002 ? "-∞" : (_peak * 60 - 60).ToString("F1", CultureInfo.CurrentCulture);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -114,6 +149,7 @@ public class RouteSettings
 public class AppSettings
 {
     public string NdiName { get; set; } = "Audio PC";
+    public string? Language { get; set; }          // "ca" / "en" (null = segons Windows)
     public string[] ChannelNames { get; set; } = Array.Empty<string>();
     public double MonitorVolume { get; set; } = 1;
     public bool AudioV2 { get; set; } = true;

@@ -33,3 +33,13 @@ Desenvolupament: `dotnet run -c Release`
   compila, genera l'instal·lador i l'executable portable i publica una Release nova (`v1.0.N`).
   També es pot forçar una versió concreta pujant una etiqueta `vX.Y.Z`.
   Les Releases surten a la dreta de la pàgina del repositori, a l'apartat *Releases*.
+
+## Idioma i aspecte (v1.1)
+- Selector **CA / EN** a dalt a la dreta: tota la interfície, la imatge de l'stream i els missatges canvien a l'instant.
+  Es recorda a `%AppData%\NdiAudioRouter\settings.json`. En el primer arrencament es tria català si Windows és en
+  català o castellà, i anglès en la resta de casos. Els noms de canal que no has personalitzat ("Canal 1" / "Channel 1")
+  segueixen l'idioma. La veu d'ID segueix dient "Channel number N" en anglès.
+- Vúmetres fins amb escala en dB, marca d'ajust a -18 dB, retenció de pic i aspecte de LEDs (`MeterBar.cs`).
+- Tipografia Segoe UI Variable (Windows 11) o Segoe UI, xifres en Cascadia Mono / Consolas, més contrast als textos.
+- Diàlegs de confirmació propis (`PromptWindow`) perquè els botons surtin en l'idioma de l'app.
+- Traduccions: tots els textos són a `Loc.cs`; per afegir un idioma o canviar un text només cal editar aquest fitxer.
